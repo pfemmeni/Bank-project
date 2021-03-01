@@ -1,15 +1,15 @@
 package se.sensera.banking;
 
-import org.hamcrest.MatcherAssert;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import se.sensera.banking.exceptions.Activity;
-import se.sensera.banking.exceptions.UserException;
-import se.sensera.banking.exceptions.UserExceptionType;
+import se.sensera.banking.exceptions.UseException;
+import se.sensera.banking.exceptions.UseExceptionType;
+import se.sensera.banking.impl.UserServiceImpl;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -38,10 +38,11 @@ public class UserServiceTest {
         when(user.getId()).thenReturn(userId);
         when(user.getName()).thenReturn("Arne Gunnarsson");
         when(user.getPersonalIdentificationNumber()).thenReturn("20011010-1234");
+        when(user.isActive()).thenReturn(true);
     }
 
     @Test
-    void create_user_success() {
+    void create_user_success() throws UseException {
         // Given
         when(usersRepository.all()).thenReturn(Stream.empty());
 
@@ -52,7 +53,7 @@ public class UserServiceTest {
         verify(usersRepository).save(user);
         assertThat(user.getId(), is(notNullValue()));
         assertThat(user.getName(), is("Arne Gunnarsson"));
-        assertThat(user.getPersonalIdentificationNumber(), is("Arne Gunnarsson"));
+        assertThat(user.getPersonalIdentificationNumber(), is("20011010-1234"));
         assertThat(user.isActive(), is(true));
     }
 
@@ -64,20 +65,21 @@ public class UserServiceTest {
         when(usersRepository.all()).thenReturn(Stream.of(user));
 
         // when
-        UserException userException = assertThrows(UserException.class, () -> {
+        UseException userException = assertThrows(UseException.class, () -> {
             userService.createUser("Arne Gunnarsson", "20011010-1234");
         });
 
         // Then
         verify(usersRepository, never()).save(anyObject());
-        assertThat(userException.getUserExceptionType(), is(UserExceptionType.USER_PERSONAL_ID_NOT_UNIQUE));
+        assertThat(userException.getUserExceptionType(), is(UseExceptionType.USER_PERSONAL_ID_NOT_UNIQUE));
         assertThat(userException.getActivity(), is(Activity.CREATE_USER));
     }
 
     @Test
-    void update_name_success() {
+    void update_name_success() throws UseException {
         // Given
         when(usersRepository.getEntityById(eq(userId))).thenReturn(Optional.of(user));
+        when(usersRepository.save(anyObject())).then(invocation -> invocation.getArguments()[0]);
 
         // when
         userService.changeUser(userId, changeUser -> changeUser.setName("Arne Andersson"));
@@ -89,12 +91,20 @@ public class UserServiceTest {
     }
 
     @Test
-    void update_personal_id_success() {
+    void update_personal_id_success() throws UseException {
         // Given
         when(usersRepository.getEntityById(eq(userId))).thenReturn(Optional.of(user));
+        when(usersRepository.save(anyObject())).then(invocation -> invocation.getArguments()[0]);
+        when(usersRepository.all()).thenReturn(Stream.empty());
 
         // when
-        userService.changeUser(userId, changeUser -> changeUser.setPersonalIdentificationNumber("20011010-0234"));
+        userService.changeUser(userId, changeUser -> {
+            try {
+                changeUser.setPersonalIdentificationNumber("20011010-0234");
+            } catch (UseException e) {
+                throw new RuntimeException("Test failed", e);
+            }
+        });
 
         // Then
         verify(usersRepository).save(user);
@@ -103,7 +113,29 @@ public class UserServiceTest {
     }
 
     @Test
-    void update_personal_id_fail_because_not_unique_id() {
+    void update_personal_id_fail_because_user_not_found() throws UseException {
+        // Given
+        when(usersRepository.getEntityById(anyString())).thenReturn(Optional.empty());
+
+        // when
+        UseException userException = assertThrows(UseException.class, () -> {
+            userService.changeUser(UUID.randomUUID().toString(), changeUser -> {
+                try {
+                    changeUser.setPersonalIdentificationNumber("20011010-0234");
+                } catch (UseException e) {
+                    throw new RuntimeException("Failed!");
+                }
+            });
+        });
+
+        // Then
+        verify(usersRepository, never()).save(anyObject());
+        assertThat(userException.getUserExceptionType(), is(UseExceptionType.NOT_FOUND));
+        assertThat(userException.getActivity(), is(Activity.UPDATE_USER));
+    }
+
+    @Test
+    void update_personal_id_fail_because_not_unique_id() throws UseException {
         // Given
         String lisaUserId = UUID.randomUUID().toString();
         User lisa = mock(User.class);
@@ -114,14 +146,23 @@ public class UserServiceTest {
         when(usersRepository.getEntityById(eq(userId))).thenReturn(Optional.of(user));
 
         // when
-        UserException userException = assertThrows(UserException.class, () -> {
-            userService.changeUser(userId, changeUser -> changeUser.setPersonalIdentificationNumber("20011010-0234"));
+        AtomicReference<UseException> idUserException = new AtomicReference<>();
+        UseException userException = assertThrows(UseException.class, () -> {
+            userService.changeUser(userId, changeUser -> {
+                try {
+                    changeUser.setPersonalIdentificationNumber("20011010-0234");
+                } catch (UseException e) {
+                    idUserException.set(e);
+                }
+            });
         });
 
         // Then
         verify(usersRepository, never()).save(anyObject());
-        assertThat(userException.getUserExceptionType(), is(UserExceptionType.USER_PERSONAL_ID_NOT_UNIQUE));
+        assertThat(userException.getUserExceptionType(), is(UseExceptionType.NOT_FOUND));
         assertThat(userException.getActivity(), is(Activity.UPDATE_USER));
+        assertThat(idUserException.get().getUserExceptionType(), is(UseExceptionType.USER_PERSONAL_ID_NOT_UNIQUE));
+        assertThat(idUserException.get().getActivity(), is(Activity.UPDATE_USER));
     }
 
     @Test
@@ -154,9 +195,10 @@ public class UserServiceTest {
     }
 
     @Test
-    void inactivate_user_success() {
+    void inactivate_user_success() throws UseException {
         // Given
         when(usersRepository.getEntityById(eq(userId))).thenReturn(Optional.of(user));
+        when(usersRepository.save(anyObject())).then(invocation -> invocation.getArguments()[0]);
 
         // when
         userService.inactivateUser(userId);
@@ -164,5 +206,21 @@ public class UserServiceTest {
         // Then
         verify(usersRepository).save(user);
         verify(user).setActive(false);
+    }
+
+    @Test
+    void inactivate_user_failed_because_not_found() throws UseException {
+        // Given
+        when(usersRepository.getEntityById(anyString())).thenReturn(Optional.empty());
+
+        // when
+        UseException userException = assertThrows(UseException.class, () -> {
+            userService.inactivateUser(UUID.randomUUID().toString());
+        });
+
+        // Then
+        verify(usersRepository, never()).save(anyObject());
+        assertThat(userException.getUserExceptionType(), is(UseExceptionType.NOT_FOUND));
+        assertThat(userException.getActivity(), is(Activity.UPDATE_USER));
     }
 }

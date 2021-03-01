@@ -2,11 +2,9 @@ package se.sensera.banking;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import se.sensera.banking.exceptions.Activity;
-import se.sensera.banking.exceptions.UserException;
-import se.sensera.banking.exceptions.UserExceptionType;
+import se.sensera.banking.exceptions.UseException;
+import se.sensera.banking.impl.TransactionServiceImpl;
 
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -18,7 +16,6 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
-import static se.sensera.banking.exceptions.HandleException.safe;
 
 public class TransactionServiceParallelTest {
 
@@ -62,7 +59,7 @@ public class TransactionServiceParallelTest {
                 .map(n -> {
                     try {
                         return transactionService.createTransaction(created, user.getId(), account.getId(), (double) n);
-                    } catch (UserException e) {
+                    } catch (UseException e) {
                         throw new RuntimeException("Internal error",e);
                     }
                 })
@@ -71,7 +68,7 @@ public class TransactionServiceParallelTest {
 
         assertThat(transactions.size(), is(count));
         assertThat(transactions, containsInAnyOrder(transactionsRepository.all().toArray(Transaction[]::new)));
-        assertThat(duration, is(lessThanOrEqualTo(1)));
+        assertThat(duration, is(lessThanOrEqualTo(5000)));
     }
 
     @Test
@@ -83,27 +80,28 @@ public class TransactionServiceParallelTest {
         transactionService.addMonitor(waitSync1msec(monitorSync));
 
         long start = System.currentTimeMillis();
-        long countErrors = Stream.generate(() -> createAccount(user, UUID.randomUUID().toString(), true))
-                .limit(count)
-                .parallel()
+        long countErrors = IntStream.range(0, count).boxed()
+                .map(n -> createAccount(user, UUID.randomUUID().toString(), true))
+                //.parallel()
                 .map(account -> {
                     try {
                         transactionService.createTransaction(created, user.getId(), account.getId(), 100D);
-                    } catch (UserException e) {
+                    } catch (UseException e) {
                         e.printStackTrace();
                     }
                     return Stream.of(100D,-150D)
-                            .parallel()
+                            //.parallel()
                             .anyMatch(amount -> {
                                 try {
                                     transactionService.createTransaction(created, user.getId(), account.getId(), amount);
                                     return false;
-                                } catch (UserException e) {
+                                } catch (UseException e) {
                                     return true;
                                 }
                             });
                 })
-                .count();
+                .collect(Collectors.toList())
+                .size();
         int duration = (int) (System.currentTimeMillis() - start);
 
         assertThat(countErrors, is(0));
@@ -127,26 +125,27 @@ public class TransactionServiceParallelTest {
         });
 
         long start = System.currentTimeMillis();
-        long countTransactions = Stream.generate(() -> createAccount(user, UUID.randomUUID().toString(), true))
-                .limit(count)
-                .parallel()
+        int countTransactions = (int) IntStream.range(0, count).boxed()
+                .map(n -> createAccount(user, UUID.randomUUID().toString(), true))
+                //.parallel()
                 .map(account1 -> {
                     try {
                         return transactionService.createTransaction(created, user.getId(), account1.getId(), 100D);
-                    } catch (UserException e) {
+                    } catch (UseException e) {
                         throw new RuntimeException("Internal error!");
                     }
                 })
-                .count();
+                .collect(Collectors.toList())
+                .size();
         int duration = (int) (System.currentTimeMillis() - start);
 
         synchronized (transactions) {
             if (transactions.size() < count)
-                transactions.wait(1000);
+                transactions.wait(5000);
         }
 
         assertThat(countTransactions, is(count));
-        assertThat(transactions, is(count));
+        assertThat(transactions, is(hasSize(count)));
         assertThat(duration, is(lessThanOrEqualTo(1)));
     }
 
@@ -157,7 +156,7 @@ public class TransactionServiceParallelTest {
         when(account.getName()).thenReturn(name);
         when(account.getOwner()).thenReturn(owner);
         when(account.isActive()).thenReturn(active);
-        when(account.getUsers()).thenReturn(Stream.of(users));
+        when(account.getUsers()).then(invocation -> Stream.of(users));
         when(accountsRepository.getEntityById(accountId)).thenReturn(Optional.of(account));
         return account;
     }

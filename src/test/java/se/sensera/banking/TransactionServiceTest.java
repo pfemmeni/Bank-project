@@ -3,11 +3,12 @@ package se.sensera.banking;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import se.sensera.banking.exceptions.Activity;
-import se.sensera.banking.exceptions.UserException;
-import se.sensera.banking.exceptions.UserExceptionType;
+import se.sensera.banking.exceptions.UseException;
+import se.sensera.banking.exceptions.UseExceptionType;
+import se.sensera.banking.impl.TransactionServiceImpl;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -59,51 +60,53 @@ public class TransactionServiceTest {
     }
 
     @Test
-    void create_transaction_success() throws UserException {
+    void create_transaction_success() throws UseException, ParseException {
         // Given
         String created = "2020-01-01 10:34";
         double amount = 100;
+        when(transactionsRepository.save(anyObject())).then(invocation -> invocation.getArguments()[0]);
 
         Transaction transaction = transactionService.createTransaction(created, user.getId(), account.getId(), amount);
 
         verify(transactionsRepository).save(transaction);
 
         assertThat(transaction.getId(), is(notNullValue()));
-        assertThat(transaction.getCreated(), is(created));
+        assertThat(transaction.getCreated(), is(formatter.parse(created)));
         assertThat(transaction.getUser(), is(user));
         assertThat(transaction.getAccount(), is(account));
         assertThat(transaction.getAmount(), is(amount));
     }
 
     @Test
-    void create_withdrawal_transaction_success() throws UserException {
+    void create_withdrawal_transaction_success() throws UseException, ParseException {
         // Given
         String created = "2020-01-01 10:34";
         double amount = -100;
+        when(transactionsRepository.save(anyObject())).then(invocation -> invocation.getArguments()[0]);
 
         Transaction transaction = transactionService.createTransaction(created, user.getId(), account.getId(), amount);
 
         verify(transactionsRepository).save(transaction);
 
         assertThat(transaction.getId(), is(notNullValue()));
-        assertThat(transaction.getCreated(), is(created));
         assertThat(transaction.getUser(), is(user));
         assertThat(transaction.getAccount(), is(account));
         assertThat(transaction.getAmount(), is(amount));
     }
 
     @Test
-    void create_transaction_by_other_success() throws UserException {
+    void create_transaction_by_other_success() throws UseException, ParseException {
         // Given
         String created = "2020-01-01 10:34";
         double amount = 100;
+        when(transactionsRepository.save(anyObject())).then(invocation -> invocation.getArguments()[0]);
 
         Transaction transaction = transactionService.createTransaction(created, otherUser.getId(), otherAccount.getId(), amount);
 
         verify(transactionsRepository).save(transaction);
 
         assertThat(transaction.getId(), is(notNullValue()));
-        assertThat(transaction.getCreated(), is(created));
+        assertThat(transaction.getCreated(), is(formatter.parse(created)));
         assertThat(transaction.getUser(), is(otherUser));
         assertThat(transaction.getAccount(), is(otherAccount));
         assertThat(transaction.getAmount(), is(amount));
@@ -115,12 +118,12 @@ public class TransactionServiceTest {
         String created = "2020-01-01 10:34";
         double amount = 100;
 
-        UserException userException = assertThrows(UserException.class, () -> {
+        UseException userException = assertThrows(UseException.class, () -> {
             transactionService.createTransaction(created, otherUser.getId(), account.getId(), amount);
         });
 
         verify(transactionsRepository, never()).save(anyObject());
-        assertThat(userException.getUserExceptionType(), is(UserExceptionType.NOT_ALLOWED));
+        assertThat(userException.getUserExceptionType(), is(UseExceptionType.NOT_ALLOWED));
         assertThat(userException.getActivity(), is(Activity.CREATE_TRANSACTION));
     }
 
@@ -128,14 +131,14 @@ public class TransactionServiceTest {
     void create_transaction_failed_because_not_enough_founds_at_account() {
         // Given
         String created = "2020-01-01 10:34";
-        double amount = -100;
+        double amount = -300;
 
-        UserException userException = assertThrows(UserException.class, () -> {
+        UseException userException = assertThrows(UseException.class, () -> {
             transactionService.createTransaction(created, user.getId(), account.getId(), amount);
         });
 
         verify(transactionsRepository, never()).save(anyObject());
-        assertThat(userException.getUserExceptionType(), is(UserExceptionType.NOT_FUNDED));
+        assertThat(userException.getUserExceptionType(), is(UseExceptionType.NOT_FUNDED));
         assertThat(userException.getActivity(), is(Activity.CREATE_TRANSACTION));
     }
 
@@ -146,7 +149,7 @@ public class TransactionServiceTest {
         when(account.getName()).thenReturn(name);
         when(account.getOwner()).thenReturn(owner);
         when(account.isActive()).thenReturn(active);
-        when(account.getUsers()).thenReturn(Stream.of(users));
+        when(account.getUsers()).then(invocation -> Stream.of(users));
         when(accountsRepository.getEntityById(accountId)).thenReturn(Optional.of(account));
         return account;
     }

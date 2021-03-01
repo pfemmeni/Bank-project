@@ -1,6 +1,6 @@
 package se.sensera.banking;
 
-public interface User {
+public interface User extends Repository.Entity<String> {
     String getId();
 
     String getName();

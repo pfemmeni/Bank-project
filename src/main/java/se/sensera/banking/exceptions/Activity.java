@@ -8,5 +8,6 @@ public enum Activity {
     INACTIVATE_ACCOUNT,
     CREATE_TRANSACTION,
     SUM_TRANSACTION,
+    FIND_ACCOUNT,
     ;
 }

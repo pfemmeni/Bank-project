@@ -2,6 +2,7 @@ package se.sensera.banking;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import se.sensera.banking.impl.UserServiceImpl;
 
 import java.util.List;
 import java.util.UUID;
@@ -115,7 +116,10 @@ public class UserServiceFindTest {
         Stream<User> rs = userService.find("gunnarsson", 0, 10, UserService.SortOrder.None);
 
         // Then
-        assertThat(rs.collect(Collectors.toList()), containsInAnyOrder(arne_gunnarsson, lisa_gunnarsson, beda_gunnarsson));
+        assertThat(rs.collect(Collectors.toList()), containsInAnyOrder(
+                arne_gunnarsson,
+                lisa_gunnarsson,
+                beda_gunnarsson));
     }
 
     @Test
@@ -148,7 +152,7 @@ public class UserServiceFindTest {
     @Test
     void find_users_by_name_fail_because_page_number_to_high() {
         // When
-        Stream<User> rs = userService.find("", 1, 10, UserService.SortOrder.None);
+        Stream<User> rs = userService.find("", 2, 10, UserService.SortOrder.None);
 
         // Then
         assertThat(rs.collect(Collectors.toList()), is(empty()));

@@ -1,6 +1,6 @@
 package se.sensera.banking.exceptions;
 
-public enum UserExceptionType {
+public enum UseExceptionType {
     USER_PERSONAL_ID_NOT_UNIQUE,
     ACCOUNT_NAME_NOT_UNIQUE,
     CANNOT_ADD_OWNER_AS_USER,
@@ -10,6 +10,8 @@ public enum UserExceptionType {
     NOT_ACTIVE,
     USER_NOT_ASSIGNED_TO_THIS_ACCOUNT,
     NOT_ALLOWED,
-    NOT_FUNDED
+    NOT_FUNDED,
+    NOT_FOUND,
+    USER_NOT_FOUND,
     ;
 }

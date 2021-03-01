@@ -1,16 +1,18 @@
 package se.sensera.banking;
 
+import se.sensera.banking.exceptions.UseException;
+
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public interface UserService {
 
-    User createUser(String name, String personalIdentificationNumber);
+    User createUser(String name, String personalIdentificationNumber) throws UseException;
 
-    User changeUser(String userId, Consumer<ChangeUser> changeUser);
+    User changeUser(String userId, Consumer<ChangeUser> changeUser) throws UseException;
 
-    User inactivateUser(String userId);
+    User inactivateUser(String userId) throws UseException;
 
     Optional<User> getUser(String userId);
 
@@ -18,7 +20,7 @@ public interface UserService {
 
     interface ChangeUser {
         void setName(String name);
-        void setPersonalIdentificationNumber(String personalIdentificationNumber);
+        void setPersonalIdentificationNumber(String personalIdentificationNumber) throws UseException;
     }
 
     enum SortOrder {
