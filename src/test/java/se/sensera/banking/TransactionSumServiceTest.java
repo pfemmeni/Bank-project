@@ -8,7 +8,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import se.sensera.banking.exceptions.Activity;
 import se.sensera.banking.exceptions.UseException;
 import se.sensera.banking.exceptions.UseExceptionType;
-import se.sensera.banking.impl.TransactionServiceImpl;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;

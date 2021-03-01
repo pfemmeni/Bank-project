@@ -3,7 +3,6 @@ package se.sensera.banking;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import se.sensera.banking.exceptions.UseException;
-import se.sensera.banking.impl.TransactionServiceImpl;
 
 import java.util.*;
 import java.util.function.Consumer;

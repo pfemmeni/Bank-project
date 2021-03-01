@@ -2,7 +2,6 @@ package se.sensera.banking;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import se.sensera.banking.impl.UserServiceImpl;
 
 import java.util.List;
 import java.util.UUID;

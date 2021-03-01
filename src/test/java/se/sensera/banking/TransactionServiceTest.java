@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import se.sensera.banking.exceptions.Activity;
 import se.sensera.banking.exceptions.UseException;
 import se.sensera.banking.exceptions.UseExceptionType;
-import se.sensera.banking.impl.TransactionServiceImpl;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
