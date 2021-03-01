@@ -100,13 +100,13 @@ public class TransactionSumServiceTest {
 
     private static Stream<Arguments> provideTestData() {
         return Stream.of(
-                /*Arguments.of("2020-01-01 10:39", ARNES_ID, ARNES_KONTO, 600),
+                Arguments.of("2020-01-01 10:39", ARNES_ID, ARNES_KONTO, 600),
                 Arguments.of("2020-01-01 10:36", ARNES_ID, ARNES_KONTO, 200),
                 Arguments.of("2020-01-01 10:32", ARNES_ID, ARNES_KONTO, 0),
                 Arguments.of("2020-01-01 10:45", ARNES_ID, ARNES_KONTO, 950),
                 Arguments.of("2020-01-01 10:20", LISAS_ID, LISAS_KONTO, 0),
                 Arguments.of("2020-01-01 10:38", LISAS_ID, LISAS_KONTO, 250),
-                Arguments.of("2020-01-01 10:59", LISAS_ID, LISAS_KONTO, 400),*/
+                Arguments.of("2020-01-01 10:59", LISAS_ID, LISAS_KONTO, 400),
                 Arguments.of("2020-01-01 10:59", ARNES_ID, LISAS_KONTO, 400)
         );
     }
