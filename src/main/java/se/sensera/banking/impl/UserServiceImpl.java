@@ -3,7 +3,9 @@ package se.sensera.banking.impl;
 import se.sensera.banking.User;
 import se.sensera.banking.UserService;
 import se.sensera.banking.UsersRepository;
+import se.sensera.banking.exceptions.Activity;
 import se.sensera.banking.exceptions.UseException;
+import se.sensera.banking.exceptions.UseExceptionType;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -19,7 +21,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User createUser(String name, String personalIdentificationNumber) throws UseException {
-        UserImpl user = new UserImpl(UUID.randomUUID().toString(), name, personalIdentificationNumber, true);
+        if (usersRepository.all()
+                .anyMatch(user -> user.getPersonalIdentificationNumber()
+                        .equals(personalIdentificationNumber))) {
+            throw new UseException(Activity.CREATE_USER, UseExceptionType.USER_PERSONAL_ID_NOT_UNIQUE);
+        }
+            UserImpl user = new UserImpl(UUID.randomUUID().toString(), name, personalIdentificationNumber, true);
         return usersRepository.save(user);
     }
 
