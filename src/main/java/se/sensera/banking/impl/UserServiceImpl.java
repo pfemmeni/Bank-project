@@ -9,6 +9,7 @@ import se.sensera.banking.exceptions.UseExceptionType;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -34,7 +35,7 @@ public class UserServiceImpl implements UserService {
     public User changeUser(String userId, Consumer<ChangeUser> changeUser) throws UseException {
         User user = usersRepository.getEntityById(userId)
                 .orElseThrow(() -> new UseException(Activity.UPDATE_USER, UseExceptionType.NOT_FOUND));
-
+        AtomicBoolean save = new AtomicBoolean(true);
         changeUser.accept(new ChangeUser() {
             @Override
             public void setName(String name) {
@@ -46,11 +47,15 @@ public class UserServiceImpl implements UserService {
                 if (usersRepository.all()
                         .anyMatch(user -> user.getPersonalIdentificationNumber()
                                 .equals(personalIdentificationNumber))) {
+                    save.set(false);
                     throw new UseException(Activity.UPDATE_USER, UseExceptionType.USER_PERSONAL_ID_NOT_UNIQUE);
                 }
                 user.setPersonalIdentificationNumber(personalIdentificationNumber);
             }});
 
+        if(!save.get()){
+            return user;
+        }
         return usersRepository.save(user);
     }
 
