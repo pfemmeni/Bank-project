@@ -147,20 +147,16 @@ public class UserServiceTest {
 
         // when
         AtomicReference<UseException> idUserException = new AtomicReference<>();
-        UseException userException = assertThrows(UseException.class, () -> {
-            userService.changeUser(userId, changeUser -> {
-                try {
-                    changeUser.setPersonalIdentificationNumber("20011010-0234");
-                } catch (UseException e) {
-                    idUserException.set(e);
-                }
-            });
+        userService.changeUser(userId, changeUser -> {
+            try {
+                changeUser.setPersonalIdentificationNumber("20011010-0234");
+            } catch (UseException e) {
+                idUserException.set(e);
+            }
         });
 
         // Then
         verify(usersRepository, never()).save(anyObject());
-        assertThat(userException.getUserExceptionType(), is(UseExceptionType.NOT_FOUND));
-        assertThat(userException.getActivity(), is(Activity.UPDATE_USER));
         assertThat(idUserException.get().getUserExceptionType(), is(UseExceptionType.USER_PERSONAL_ID_NOT_UNIQUE));
         assertThat(idUserException.get().getActivity(), is(Activity.UPDATE_USER));
     }
