@@ -66,7 +66,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Optional<User> getUser(String userId) {
-        return Optional.empty();
+        Optional<User> user = usersRepository.getEntityById(userId);
+        return user;
     }
 
     @Override
