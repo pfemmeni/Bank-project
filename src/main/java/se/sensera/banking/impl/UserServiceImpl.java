@@ -7,10 +7,10 @@ import se.sensera.banking.exceptions.Activity;
 import se.sensera.banking.exceptions.UseException;
 import se.sensera.banking.exceptions.UseExceptionType;
 
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class UserServiceImpl implements UserService {
@@ -51,9 +51,10 @@ public class UserServiceImpl implements UserService {
                     throw new UseException(Activity.UPDATE_USER, UseExceptionType.USER_PERSONAL_ID_NOT_UNIQUE);
                 }
                 user.setPersonalIdentificationNumber(personalIdentificationNumber);
-            }});
+            }
+        });
 
-        if(!save.get()){
+        if (!save.get()) {
             return user;
         }
         return usersRepository.save(user);
@@ -75,6 +76,40 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Stream<User> find(String searchString, Integer pageNumber, Integer pageSize, SortOrder sortOrder) {
-        return null;
+        SortBySortOrder sortBySortOrder = new SortBySortOrder();
+        Stream<User> unorderedUsers = sortBySortOrder.unorderedUsers(searchString);
+
+        return sortBySortOrder.usersByOrder(sortOrder, sortBySortOrder, unorderedUsers);
+    }
+
+    class SortBySortOrder {
+        Comparator<User> SORT_BY_NAME = Comparator.comparing(User::getName);
+        Comparator<User> SORT_BY_ID = Comparator.comparing(User::getPersonalIdentificationNumber);
+
+        public Stream<User> unorderedUsers(String searchString) {
+            return usersRepository.all()
+                    .filter(user -> checkIfContains(searchString, user))
+                    .collect(Collectors.toList())
+                    .stream();
+        }
+
+        private boolean checkIfContains(String searchString, User user) {
+            if (user.getName().toLowerCase().contains(searchString.toLowerCase())) //user.isActive()
+                return true;
+            if (user.getPersonalIdentificationNumber().contains(searchString))
+                return true;
+            return false;
+        }
+
+        private Stream<User> usersByOrder(SortOrder sortOrder, SortBySortOrder sortBySortOrder, Stream<User> unorderedUsers) {
+            if (sortOrder.equals(SortOrder.Name)) {
+                return unorderedUsers.sorted(sortBySortOrder.SORT_BY_NAME);
+            } else if (sortOrder.equals(SortOrder.PersonalId)) {
+                return unorderedUsers.sorted(sortBySortOrder.SORT_BY_ID);
+            } else {
+                return unorderedUsers.filter(User::isActive);
+            }
+        }
+
     }
 }
