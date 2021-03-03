@@ -61,7 +61,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User inactivateUser(String userId) throws UseException {
-        return null;
+        User user = usersRepository.getEntityById(userId)
+                .orElseThrow(() -> new UseException(Activity.UPDATE_USER, UseExceptionType.NOT_FOUND));
+        user.setActive(false);
+        return usersRepository.save(user);
     }
 
     @Override
