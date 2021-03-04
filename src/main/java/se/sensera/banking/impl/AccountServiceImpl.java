@@ -68,8 +68,9 @@ public class AccountServiceImpl implements AccountService {
                 }
                 if (account.getName().equals(name)) {
                     save.set(false);
+                } else {
+                    account.setName(name);
                 }
-                account.setName(name);
             }
         });
     }
@@ -86,7 +87,18 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Account inactivateAccount(String userId, String accountId) throws UseException {
-        return null;
+        Account account = accountsRepository.getEntityById(accountId)
+                .orElseThrow(() -> new UseException(Activity.INACTIVATE_ACCOUNT, UseExceptionType.NOT_FOUND));
+        User user = usersRepository.getEntityById(userId)
+                .orElseThrow(() -> new UseException(Activity.INACTIVATE_ACCOUNT, UseExceptionType.USER_NOT_FOUND));
+
+        if (!account.getOwner().getId().equals(userId))
+            throw new UseException(Activity.INACTIVATE_ACCOUNT, UseExceptionType.NOT_OWNER);
+        if (!account.isActive() || !user.isActive())
+            throw new UseException(Activity.INACTIVATE_ACCOUNT, UseExceptionType.NOT_ACTIVE);
+        account.setActive(false);
+
+        return accountsRepository.save(account);
     }
 
     @Override
