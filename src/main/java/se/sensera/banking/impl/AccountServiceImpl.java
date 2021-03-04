@@ -82,13 +82,13 @@ public class AccountServiceImpl implements AccountService {
         User user = usersRepository.getEntityById(userIdToBeAssigned)
                 .orElseThrow(() -> new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.USER_NOT_FOUND));
 
-        if(account.getOwner().getId().equals(user.getId()) || !account.isActive()){
+        if (account.getOwner().getId().equals(user.getId()) || !account.isActive()) {
             throw new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.CANNOT_ADD_OWNER_AS_USER);
         }
-        if(!account.getOwner().getId().equals(userId)){
+        if (!account.getOwner().getId().equals(userId)) {
             throw new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.NOT_OWNER);
         }
-        if(account.getUsers().anyMatch(u -> u.getId().equals(user.getId()))){
+        if (account.getUsers().anyMatch(u -> u.getId().equals(user.getId()))) {
             throw new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.USER_ALREADY_ASSIGNED_TO_THIS_ACCOUNT);
         }
 
@@ -104,11 +104,11 @@ public class AccountServiceImpl implements AccountService {
         User user = usersRepository.getEntityById(userIdToBeAssigned)
                 .orElseThrow(() -> new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.USER_NOT_FOUND));
 
-        if(!account.getOwner().getId().equals(userId)){
+        if (!account.getOwner().getId().equals(userId)) {
             throw new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.NOT_OWNER);
         }
 
-        if(account.getUsers().noneMatch(u -> u.getId().equals(user.getId()))){
+        if (account.getUsers().noneMatch(u -> u.getId().equals(user.getId()))) {
             throw new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.USER_NOT_ASSIGNED_TO_THIS_ACCOUNT);
         }
 
@@ -133,7 +133,30 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public Stream<Account> findAccounts(String searchValue, String userId, Integer pageNumber, Integer pageSize, SortOrder sortOrder) throws UseException {
-        return null;
+    public Stream<Account> findAccounts(String searchValue,
+                                        String userId,
+                                        Integer pageNumber,
+                                        Integer pageSize,
+                                        SortOrder sortOrder) throws UseException {
+        Stream<Account> accounts = accountsRepository.all();
+
+
+                .filter(account -> checkIfContains(searchValue, userId, account))
+                .collect(Collectors.toList())
+                .stream();
+
+
+        return accounts;
+    }
+
+    private boolean checkIfContains(String searchValue, String userId, Account account) {
+        if (account.getName().toLowerCase()
+                .contains(searchValue.toLowerCase()))
+            return true;
+        if (accountsRepository.all()
+                .filter(account1 -> account1.getUsers()
+                        .equals(usersRepository.getEntityById(userId))).collect(Collectors.toList()).get())
+            return true;
+        return false;
     }
 }
