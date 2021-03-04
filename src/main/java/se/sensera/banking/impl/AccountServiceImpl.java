@@ -77,12 +77,43 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Account addUserToAccount(String userId, String accountId, String userIdToBeAssigned) throws UseException {
-        return null;
+        Account account = accountsRepository.getEntityById(accountId)
+                .orElseThrow(() -> new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.NOT_FOUND));
+        User user = usersRepository.getEntityById(userIdToBeAssigned)
+                .orElseThrow(() -> new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.USER_NOT_FOUND));
+
+        if(account.getOwner().getId().equals(user.getId()) || !account.isActive()){
+            throw new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.CANNOT_ADD_OWNER_AS_USER);
+        }
+        if(!account.getOwner().getId().equals(userId)){
+            throw new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.NOT_OWNER);
+        }
+        if(account.getUsers().anyMatch(u -> u.getId().equals(user.getId()))){
+            throw new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.USER_ALREADY_ASSIGNED_TO_THIS_ACCOUNT);
+        }
+
+        account.addUser(user);
+        return accountsRepository.save(account);
     }
 
     @Override
     public Account removeUserFromAccount(String userId, String accountId, String userIdToBeAssigned) throws UseException {
-        return null;
+        Account account = accountsRepository.getEntityById(accountId)
+                .orElseThrow(() -> new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.NOT_FOUND));
+
+        User user = usersRepository.getEntityById(userIdToBeAssigned)
+                .orElseThrow(() -> new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.USER_NOT_FOUND));
+
+        if(!account.getOwner().getId().equals(userId)){
+            throw new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.NOT_OWNER);
+        }
+
+        if(account.getUsers().noneMatch(u -> u.getId().equals(user.getId()))){
+            throw new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.USER_NOT_ASSIGNED_TO_THIS_ACCOUNT);
+        }
+
+        account.removeUser(user);
+        return accountsRepository.save(account);
     }
 
     @Override
