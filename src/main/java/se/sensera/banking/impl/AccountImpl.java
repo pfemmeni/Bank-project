@@ -5,6 +5,7 @@ import lombok.Data;
 import se.sensera.banking.Account;
 import se.sensera.banking.User;
 
+import java.util.List;
 import java.util.stream.Stream;
 @Data
 @AllArgsConstructor
@@ -13,12 +14,12 @@ public class AccountImpl implements Account {
     User owner;
     String name;
     boolean isActive;
-    Stream<User> users;
+    List<User> users;
 
     @Override
     public Stream<User> getUsers() {
 
-        return users;
+        return users.stream();
     }
 
     @Override

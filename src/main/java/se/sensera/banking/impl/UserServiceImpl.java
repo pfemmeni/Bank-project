@@ -6,6 +6,7 @@ import se.sensera.banking.UsersRepository;
 import se.sensera.banking.exceptions.Activity;
 import se.sensera.banking.exceptions.UseException;
 import se.sensera.banking.exceptions.UseExceptionType;
+import se.sensera.banking.utils.ListUtils;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -35,7 +36,9 @@ public class UserServiceImpl implements UserService {
     public User changeUser(String userId, Consumer<ChangeUser> changeUser) throws UseException {
         User user = usersRepository.getEntityById(userId)
                 .orElseThrow(() -> new UseException(Activity.UPDATE_USER, UseExceptionType.NOT_FOUND));
+
         AtomicBoolean save = new AtomicBoolean(true);
+
         changeUser.accept(new ChangeUser() {
             @Override
             public void setName(String name) {
@@ -65,6 +68,7 @@ public class UserServiceImpl implements UserService {
         User user = usersRepository.getEntityById(userId)
                 .orElseThrow(() -> new UseException(Activity.UPDATE_USER, UseExceptionType.NOT_FOUND));
         user.setActive(false);
+
         return usersRepository.save(user);
     }
 
@@ -79,7 +83,9 @@ public class UserServiceImpl implements UserService {
         SortBySortOrder sortBySortOrder = new SortBySortOrder();
         Stream<User> unorderedUsers = sortBySortOrder.unorderedUsers(searchString);
 
-        return sortBySortOrder.usersByOrder(sortOrder, sortBySortOrder, unorderedUsers);
+        Stream<User> userStream = sortBySortOrder.usersByOrder(sortOrder, sortBySortOrder, unorderedUsers);
+
+        return ListUtils.applyPage(userStream, pageNumber, pageSize);
     }
 
     class SortBySortOrder {
@@ -94,7 +100,7 @@ public class UserServiceImpl implements UserService {
         }
 
         private boolean checkIfContains(String searchString, User user) {
-            if (user.getName().toLowerCase().contains(searchString.toLowerCase())) //user.isActive()
+            if (user.getName().toLowerCase().contains(searchString.toLowerCase()))
                 return true;
             if (user.getPersonalIdentificationNumber().contains(searchString))
                 return true;

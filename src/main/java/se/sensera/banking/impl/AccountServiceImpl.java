@@ -6,6 +6,7 @@ import se.sensera.banking.AccountsRepository;
 import se.sensera.banking.UsersRepository;
 import se.sensera.banking.exceptions.UseException;
 
+import java.util.ArrayList;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -26,7 +27,7 @@ public class AccountServiceImpl implements AccountService {
                                                 usersRepository.getEntityById(userId).get(),
                                                 accountName,
                                                 true,
-                                                usersRepository.all());
+                                                new ArrayList<>());
         return accountsRepository.save(account);
     }
 
