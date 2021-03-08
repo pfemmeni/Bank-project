@@ -161,8 +161,10 @@ public class AccountServiceImpl implements AccountService {
             Stream<Account> accountsSortedByName = accounts.sorted(SORT_BY_ACCOUNT_NAME).collect(Collectors.toList())
                     .stream();
             return ListUtils.applyPage(accountsSortedByName, pageNumber, pageSize);
+        } else if ((sortOrder.equals(SortOrder.None))) {
+            return ListUtils.applyPage(accounts, pageNumber, pageSize).;
         } else {
-            return ListUtils.applyPage(accounts, pageNumber, pageSize);
+            throw new UseException(Activity.FIND_ACCOUNT, UseExceptionType.NOT_FOUND);
         }
     }
 
