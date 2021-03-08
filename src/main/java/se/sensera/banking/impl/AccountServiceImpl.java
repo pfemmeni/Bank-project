@@ -162,7 +162,7 @@ public class AccountServiceImpl implements AccountService {
                     .stream();
             return ListUtils.applyPage(accountsSortedByName, pageNumber, pageSize);
         } else if ((sortOrder.equals(SortOrder.None))) {
-            return ListUtils.applyPage(accounts, pageNumber, pageSize).;
+            return ListUtils.applyPage(accounts, pageNumber, pageSize);
         } else {
             throw new UseException(Activity.FIND_ACCOUNT, UseExceptionType.NOT_FOUND);
         }
