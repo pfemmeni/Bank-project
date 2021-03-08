@@ -66,7 +66,12 @@ public class AccountServiceFindTest {
 
     @ParameterizedTest
     @MethodSource("provideSearchTestData")
-    void find_accounts_success(String searchValue, String userId, Integer pageNumber, Integer pageSize, AccountService.SortOrder sortOrder, Matcher<Iterable<Account>> matcher) throws UseException {
+    void find_accounts_success(String searchValue,
+                               String userId,
+                               Integer pageNumber,
+                               Integer pageSize,
+                               AccountService.SortOrder sortOrder,
+                               Matcher<Iterable<Account>> matcher) throws UseException {
         // When
         Stream<Account> searchResult = accountService.findAccounts(searchValue, userId, pageNumber, pageSize, sortOrder);
 

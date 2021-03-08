@@ -4,8 +4,10 @@ import se.sensera.banking.*;
 import se.sensera.banking.exceptions.Activity;
 import se.sensera.banking.exceptions.UseException;
 import se.sensera.banking.exceptions.UseExceptionType;
+import se.sensera.banking.utils.ListUtils;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -138,25 +140,30 @@ public class AccountServiceImpl implements AccountService {
                                         Integer pageNumber,
                                         Integer pageSize,
                                         SortOrder sortOrder) throws UseException {
-        Stream<Account> accounts = accountsRepository.all();
 
+        Comparator<Account> SORT_BY_ACCOUNT_NAME = Comparator.comparing(Account::getName);
+        Stream<Account> accounts;
 
-                .filter(account -> checkIfContains(searchValue, userId, account))
-                .collect(Collectors.toList())
-                .stream();
+        if (userId == null) {
+            accounts = accountsRepository.all()
+                    .filter(account -> account.getName().contains(searchValue))
+                    .collect(Collectors.toList())
+                    .stream();
+        } else {
+            accounts = accountsRepository.all()
+                    .filter(account -> account.getUsers().anyMatch(user -> user.getId().equals(userId))
+                            || account.getOwner().getId().equals(userId))
+                    .collect(Collectors.toList())
+                    .stream();
+        }
 
-
-        return accounts;
+        if (sortOrder.equals(SortOrder.AccountName)) {
+            Stream<Account> accountsSortedByName = accounts.sorted(SORT_BY_ACCOUNT_NAME).collect(Collectors.toList())
+                    .stream();
+            return ListUtils.applyPage(accountsSortedByName, pageNumber, pageSize);
+        } else {
+            return ListUtils.applyPage(accounts, pageNumber, pageSize);
+        }
     }
 
-    private boolean checkIfContains(String searchValue, String userId, Account account) {
-        if (account.getName().toLowerCase()
-                .contains(searchValue.toLowerCase()))
-            return true;
-        if (accountsRepository.all()
-                .filter(account1 -> account1.getUsers()
-                        .equals(usersRepository.getEntityById(userId))).collect(Collectors.toList()).get())
-            return true;
-        return false;
-    }
 }

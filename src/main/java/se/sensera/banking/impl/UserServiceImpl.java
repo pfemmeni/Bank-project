@@ -92,6 +92,7 @@ public class UserServiceImpl implements UserService {
         Comparator<User> SORT_BY_NAME = Comparator.comparing(User::getName);
         Comparator<User> SORT_BY_ID = Comparator.comparing(User::getPersonalIdentificationNumber);
 
+
         public Stream<User> unorderedUsers(String searchString) {
             return usersRepository.all()
                     .filter(user -> checkIfContains(searchString, user))
