@@ -21,7 +21,7 @@ public class TransactionImpl implements Transaction {
     SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm");
     public TransactionImpl(String id, Date created, User user, Account account, double amount) {
         this.id = id;
-        this.created = formatter.format(created);
+        this.created = created; //formatter.format(created);
         this.user = user;
         this.account = account;
         this.amount = amount;

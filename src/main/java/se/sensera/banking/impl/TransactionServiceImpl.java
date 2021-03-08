@@ -20,11 +20,12 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public Transaction createTransaction(String created, String userId, String accountId, double amount) throws UseException {
-       TransactionImpl transaction = new TransactionImpl(UUID.randomUUID().toString(), created,
-               usersRepository.getEntityById(userId).get(),
-               accountsRepository.getEntityById(accountId).get(),
-               amount);
-        return transactionsRepository.save(transaction);
+//       TransactionImpl transaction = new TransactionImpl(UUID.randomUUID().toString(), created,
+//               usersRepository.getEntityById(userId).get(),
+//               accountsRepository.getEntityById(accountId).get(),
+//               amount);
+//        return transactionsRepository.save(transaction);
+        return null;
     }
 
     @Override
