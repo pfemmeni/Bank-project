@@ -20,7 +20,6 @@ public class TransactionServiceImpl implements TransactionService {
         this.accountsRepository = accountsRepository;
         this.transactionsRepository = transactionsRepository;
     }
-
     SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm");
 
     @Override
@@ -28,12 +27,11 @@ public class TransactionServiceImpl implements TransactionService {
         Account account = accountsRepository.getEntityById(accountId)
                 .orElseThrow(() -> new UseException(Activity.CREATE_TRANSACTION, UseExceptionType.ACCOUNT_NOT_FOUND));
 
-//        Transaction oldTransaction = transactionsRepository.all().(transaction -> transaction.getUser().equals(userId));
-//        if ((oldTransaction.getAmount() + amount) < 0) {
-//            throw new UseException(Activity.CREATE_TRANSACTION, UseExceptionType.NOT_FUNDED);
-//        }
+        if(amount<0){
+            throw new UseException(Activity.CREATE_TRANSACTION,UseExceptionType.NOT_FUNDED);
+        }
 
-        if (account.getOwner().getId().equals(userId) || account.getUsers().anyMatch(user -> user.getId().equals(userId))) {
+        if( account.getOwner().getId().equals(userId) || account.getUsers().anyMatch(user -> user.getId().equals(userId)) ) {
             return getTransaction(created, userId, accountId, amount);
         } else {
             throw new UseException(Activity.CREATE_TRANSACTION, UseExceptionType.NOT_ALLOWED);
