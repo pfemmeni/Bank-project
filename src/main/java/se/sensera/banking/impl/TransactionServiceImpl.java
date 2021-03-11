@@ -30,18 +30,19 @@ public class TransactionServiceImpl implements TransactionService {
         Account account = accountsRepository.getEntityById(accountId)
                 .orElseThrow(() -> new UseException(Activity.CREATE_TRANSACTION, UseExceptionType.ACCOUNT_NOT_FOUND));
 
-        if (amount < -100) {
-            throw new UseException(Activity.CREATE_TRANSACTION, UseExceptionType.NOT_FUNDED);
-        }
-
-        if (account.getOwner().getId().equals(userId) || account.getUsers().anyMatch(user -> user.getId().equals(userId))) {
-            return getTransaction(created, userId, accountId, amount);
+        if (isUserOrOwner(userId, account)) {
+            if ((sum(created, userId, accountId) + amount < 0)) {
+                throw new UseException(Activity.CREATE_TRANSACTION, UseExceptionType.NOT_FUNDED);
+            } else {
+                return createNewTransaction(created, userId, accountId, amount);
+            }
         } else {
             throw new UseException(Activity.CREATE_TRANSACTION, UseExceptionType.NOT_ALLOWED);
         }
     }
 
-    private Transaction getTransaction(String created, String userId, String accountId, double amount) {
+
+    private Transaction createNewTransaction(String created, String userId, String accountId, double amount) {
         TransactionImpl transaction = new TransactionImpl(UUID.randomUUID().toString(), stringToDate(created),
                 usersRepository.getEntityById(userId).get(),
                 accountsRepository.getEntityById(accountId).get(),
@@ -56,13 +57,18 @@ public class TransactionServiceImpl implements TransactionService {
                 .orElseThrow(() -> new UseException(Activity.SUM_TRANSACTION, UseExceptionType.ACCOUNT_NOT_FOUND));
 
         if (isUserOrOwner(userId, account)) {
-            Stream<Transaction> foundTransactions = transactionsRepository.all()
-                    .filter(t -> t.getAccount().getId().equals(accountId)
-                            && t.getCreated().before(stringToDate(created)));
+            Stream<Transaction> foundTransactions = getTransactions(created, accountId);
+
             return foundTransactions.mapToDouble(Transaction::getAmount).sum();
         } else {
             throw new UseException(Activity.SUM_TRANSACTION, UseExceptionType.NOT_ALLOWED);
         }
+    }
+
+    private Stream<Transaction> getTransactions(String created, String accountId) {
+        return transactionsRepository.all()
+                .filter(t -> t.getAccount().getId().equals(accountId)
+                        && t.getCreated().before(stringToDate(created)));
     }
 
     private Boolean isUserOrOwner(String userId, Account account) {
