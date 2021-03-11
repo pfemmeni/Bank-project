@@ -8,6 +8,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import se.sensera.banking.exceptions.Activity;
 import se.sensera.banking.exceptions.UseException;
 import se.sensera.banking.exceptions.UseExceptionType;
+import se.sensera.banking.impl.TransactionServiceImpl;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -54,7 +55,7 @@ public class TransactionSumServiceTest {
         accountsRepository = mock(AccountsRepository.class);
         transactionsRepository = mock(TransactionsRepository.class);
 
-        transactionService = null; //TODO create Your implementing class here
+        transactionService = new TransactionServiceImpl(usersRepository, accountsRepository, transactionsRepository); //TODO create Your implementing class here
     }
 
     @ParameterizedTest

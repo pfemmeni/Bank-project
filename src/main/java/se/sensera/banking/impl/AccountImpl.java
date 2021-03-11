@@ -7,6 +7,7 @@ import se.sensera.banking.User;
 
 import java.util.List;
 import java.util.stream.Stream;
+
 @Data
 @AllArgsConstructor
 public class AccountImpl implements Account {
@@ -24,12 +25,12 @@ public class AccountImpl implements Account {
 
     @Override
     public void addUser(User user) {
-
+        users.add(user);
     }
 
     @Override
     public void removeUser(User user) {
-
+        users.remove(user);
     }
 
 
