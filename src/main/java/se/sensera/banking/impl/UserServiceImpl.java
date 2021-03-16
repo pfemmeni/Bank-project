@@ -16,6 +16,7 @@ import java.util.stream.Stream;
 
 public class UserServiceImpl implements UserService {
     private UsersRepository usersRepository;
+   // private UsersRepository usersRepository;
 
     public UserServiceImpl(UsersRepository usersRepository) {
         this.usersRepository = usersRepository;

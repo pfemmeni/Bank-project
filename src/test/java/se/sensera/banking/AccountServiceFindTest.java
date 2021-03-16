@@ -37,7 +37,6 @@ public class AccountServiceFindTest {
     static Account svenExtraAccount = createAccount(SVEN, "extra b", true, LISA, ARNE);
 
     AccountService accountService;
-
     UsersRepository usersRepository;
     AccountsRepository accountsRepository;
 

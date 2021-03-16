@@ -11,6 +11,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 @Data
+@AllArgsConstructor
 public class TransactionImpl implements Transaction {
     String id;
     Date created;
@@ -18,43 +19,10 @@ public class TransactionImpl implements Transaction {
     Account account;
     double amount;
 
-    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-    public TransactionImpl(String id, Date created, User user, Account account, double amount) {
-        this.id = id;
-        this.created = created; //formatter.format(created);
-        this.user = user;
-        this.account = account;
-        this.amount = amount;
-    }
-
     @Override
     public Date getCreated() {
         return created;
     }
 
-//
-//    @Override
-//    public String getId() {
-//        return this.id;
-//    }
-//
-//    @Override
-//    public Date getCreated() {
-//        return this.date;
-//    }
-//
-//    @Override
-//    public User getUser() {
-//        return this.user;
-//    }
-//
-//    @Override
-//    public Account getAccount() {
-//        return this.account;
-//    }
-//
-//    @Override
-//    public double getAmount() {
-//        return this.amount;
-//    }
+
 }

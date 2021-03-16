@@ -3,6 +3,7 @@ package se.sensera.banking;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import se.sensera.banking.exceptions.UseException;
+import se.sensera.banking.impl.TransactionServiceImpl;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -35,7 +36,7 @@ public class TransactionServiceParallelTest {
         accountsRepository = mock(AccountsRepository.class);
         transactionsRepository = new TestTransactionsRepository();
 
-        transactionService = null; //TODO create Your implementing class here
+        transactionService = new TransactionServiceImpl(usersRepository,accountsRepository,transactionsRepository); //TODO create Your implementing class here
 
         user = createUser("Arne Arnesson", "9283749238472", true);
         otherUser = createUser("Arne Arnesson", "9283749238472", true);
