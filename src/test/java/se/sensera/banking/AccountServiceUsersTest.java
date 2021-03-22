@@ -123,7 +123,7 @@ public class AccountServiceUsersTest {
         // Then
         verify(accountsRepository, never()).save(this.account);
         verify(this.account, never()).addUser(anyObject());
-        assertThat(userException.getUserExceptionType(), is(UseExceptionType.CANNOT_ADD_OWNER_AS_USER));
+        assertThat(userException.getUserExceptionType(), is(UseExceptionType.ACCOUNT_NOT_ACTIVE));
         assertThat(userException.getActivity(), is(Activity.UPDATE_ACCOUNT));
     }
 
