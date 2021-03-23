@@ -13,5 +13,6 @@ public enum UseExceptionType {
     NOT_FUNDED,
     NOT_FOUND,
     USER_NOT_FOUND,
+    ACCOUNT_NOT_ACTIVE
     ;
 }

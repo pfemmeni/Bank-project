@@ -32,8 +32,8 @@ public class TransactionServiceParallelTest {
     @BeforeEach
     void setUp() {
         //TODO must be included in create of AccountService
-        usersRepository = mock(UsersRepository.class);
-        accountsRepository = mock(AccountsRepository.class);
+        usersRepository = new TestUsersRepository();
+        accountsRepository = new TestAccountsRepository();
         transactionsRepository = new TestTransactionsRepository();
 
         transactionService = new TransactionServiceImpl(usersRepository,accountsRepository,transactionsRepository); //TODO create Your implementing class here
@@ -81,8 +81,8 @@ public class TransactionServiceParallelTest {
 
         long start = System.currentTimeMillis();
         long countErrors = IntStream.range(0, count).boxed()
+                .parallel()
                 .map(n -> createAccount(user, UUID.randomUUID().toString(), true))
-                //.parallel()
                 .map(account -> {
                     try {
                         transactionService.createTransaction(created, user.getId(), account.getId(), 100D);
@@ -90,22 +90,24 @@ public class TransactionServiceParallelTest {
                         e.printStackTrace();
                     }
                     return Stream.of(100D,-150D)
-                            //.parallel()
+                            .parallel()
                             .anyMatch(amount -> {
                                 try {
                                     transactionService.createTransaction(created, user.getId(), account.getId(), amount);
-                                    return false;
+                                    return amount > 0;
                                 } catch (UseException e) {
-                                    return true;
+                                    e.printStackTrace();
+                                    return amount < 0;
                                 }
                             });
                 })
+                .filter(ok -> !ok)
                 .collect(Collectors.toList())
                 .size();
         int duration = (int) (System.currentTimeMillis() - start);
 
-        assertThat(countErrors, is(0));
-        assertThat(duration, is(lessThanOrEqualTo(1)));
+        assertThat(countErrors, is(0L));
+        assertThat(duration, is(lessThanOrEqualTo(30000)));
     }
 
 
@@ -127,14 +129,20 @@ public class TransactionServiceParallelTest {
         long start = System.currentTimeMillis();
         int countTransactions = (int) IntStream.range(0, count).boxed()
                 .map(n -> createAccount(user, UUID.randomUUID().toString(), true))
-                //.parallel()
+                .parallel()
                 .map(account1 -> {
                     try {
                         return transactionService.createTransaction(created, user.getId(), account1.getId(), 100D);
                     } catch (UseException e) {
-                        throw new RuntimeException("Internal error!");
+                        e.printStackTrace();
+                        //throw new RuntimeException("Internal error!",e);
+                        return null;
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return null;
                     }
                 })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList())
                 .size();
         int duration = (int) (System.currentTimeMillis() - start);
@@ -146,7 +154,7 @@ public class TransactionServiceParallelTest {
 
         assertThat(countTransactions, is(count));
         assertThat(transactions, is(hasSize(count)));
-        assertThat(duration, is(lessThanOrEqualTo(1)));
+        assertThat(duration, is(lessThanOrEqualTo(5000)));
     }
 
     private Account createAccount(User owner, String name, boolean active, User... users) {
@@ -157,7 +165,8 @@ public class TransactionServiceParallelTest {
         when(account.getOwner()).thenReturn(owner);
         when(account.isActive()).thenReturn(active);
         when(account.getUsers()).then(invocation -> Stream.of(users));
-        when(accountsRepository.getEntityById(accountId)).thenReturn(Optional.of(account));
+        //when(accountsRepository.getEntityById(accountId)).thenReturn(Optional.of(account));
+        accountsRepository.save(account);
         return account;
     }
 
@@ -168,49 +177,14 @@ public class TransactionServiceParallelTest {
         when(user.getPersonalIdentificationNumber()).thenReturn(pid);
         when(user.getName()).thenReturn(name);
         when(user.isActive()).thenReturn(active);
-        when(usersRepository.getEntityById(eq(userId))).thenReturn(Optional.of(user));
+        //when(usersRepository.getEntityById(eq(userId))).thenReturn(Optional.of(user));
+        usersRepository.save(user);
         return user;
     }
 
-    private static class TestTransactionsRepository implements TransactionsRepository {
-        private final List<Transaction> transactions = new LinkedList<>();
-
-        @Override
-        public Optional<Transaction> getEntityById(String id) {
-            synchronized (transactions) {
-                return transactions.stream()
-                        .filter(transaction -> transaction.getId().equals(id))
-                        .findFirst();
-            }
-        }
-
-        @Override
-        public Stream<Transaction> all() {
-            synchronized (transactions) {
-                return new ArrayList<>(transactions).stream();
-            }
-        }
-
-        @Override
-        public Transaction save(Transaction entity) {
-            synchronized (transactions) {
-                transactions.add(entity);
-                return entity;
-            }
-        }
-
-        @Override
-        public Transaction delete(Transaction entity) {
-            synchronized (transactions) {
-                List<Transaction> tmp = transactions.stream()
-                        .filter(transaction -> !transaction.getId().equals(transaction.getId()))
-                        .collect(Collectors.toList());
-                transactions.clear();
-                transactions.addAll(tmp);
-                return entity;
-            }
-        }
-    }
+    private static class TestTransactionsRepository extends AbstractTestRepository<Transaction> implements TransactionsRepository {}
+    private static class TestAccountsRepository extends AbstractTestRepository<Account> implements AccountsRepository {}
+    private static class TestUsersRepository extends AbstractTestRepository<User> implements UsersRepository {}
 
     private Consumer<Transaction> waitSync1msec(Object monitorSync) {
         return transaction -> {
@@ -222,5 +196,47 @@ public class TransactionServiceParallelTest {
                 }
             }
         };
+    }
+
+    static abstract class AbstractTestRepository<E extends Repository.Entity<String>> implements Repository<E,String> {
+        private final List<E> entities = new LinkedList<>();
+
+        @Override
+        public Optional<E> getEntityById(String id) {
+            //synchronized (entities) {
+            return all()
+                    .parallel()
+                    .filter(transaction -> transaction.getId().equals(id))
+                    .findFirst();
+            //}
+        }
+
+        @Override
+        public Stream<E> all() {
+            synchronized (entities) {
+                return new ArrayList<>(entities).stream();
+            }
+        }
+
+        @Override
+        public E save(E entity) {
+            synchronized (entities) {
+                entities.add(entity);
+                return entity;
+            }
+        }
+
+        @Override
+        public E delete(E entity) {
+            synchronized (entities) {
+                List<E> tmp = entities.stream()
+                        .parallel()
+                        .filter(transaction -> !transaction.getId().equals(transaction.getId()))
+                        .collect(Collectors.toList());
+                entities.clear();
+                entities.addAll(tmp);
+                return entity;
+            }
+        }
     }
 }
