@@ -84,9 +84,13 @@ public class AccountServiceImpl implements AccountService {
         User user = usersRepository.getEntityById(userIdToBeAssigned)
                 .orElseThrow(() -> new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.USER_NOT_FOUND));
 
-        if (account.getOwner().getId().equals(user.getId()) || !account.isActive()) {
+        if (account.getOwner().getId().equals(user.getId()) ) {
+            if(!account.isActive()){
+                throw new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.ACCOUNT_NOT_ACTIVE);
+            }
             throw new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.CANNOT_ADD_OWNER_AS_USER);
         }
+
         if (!account.getOwner().getId().equals(userId)) {
             throw new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.NOT_OWNER);
         }

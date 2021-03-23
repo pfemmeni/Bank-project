@@ -6,7 +6,7 @@ import java.util.Scanner;
 
 public class Main {
 
-    private static Scanner scanner = new Scanner(System.in);
+   /* private static Scanner scanner = new Scanner(System.in);
     private static UsersRepositoryImpl users = new UsersRepositoryImpl();
     private static UserServiceImpl userService = new UserServiceImpl(users);
 
@@ -120,5 +120,5 @@ public class Main {
         System.out.println("\t 2 - Go back");
         System.out.println("Enter your choice: ");
 
-    }
+    }*/
 }
