@@ -7,6 +7,9 @@ import se.sensera.banking.exceptions.UseExceptionType;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -37,26 +40,35 @@ public class TransactionServiceImpl implements TransactionService {
         if (!isUserOrOwner(userId, account)) {
             throw new UseException(Activity.CREATE_TRANSACTION, UseExceptionType.NOT_ALLOWED);
         }
-        Date createdDate = stringToDate(created);
-        synchronized (this) {
-            if (sum(createdDate, userId, accountId) + amount < 0) {
-                throw new UseException(Activity.CREATE_TRANSACTION, UseExceptionType.NOT_FUNDED);
-            }
+        Date date = null;
+//        synchronized (this) {
+        try {
+            date = new SimpleDateFormat("yyyy-MM-dd HH:mm").parse(created);
+        } catch (ParseException e) {
+            e.printStackTrace();
         }
-        return createNewTransaction(created, userId, accountId, amount);
+//        }
 
+
+        if (sum(created, userId, accountId) + amount < 0) {
+            throw new UseException(Activity.CREATE_TRANSACTION, UseExceptionType.NOT_FUNDED);
+        }
+
+        return createNewTransaction(date, userId, accountId, amount);
 
     }
 
-    private Transaction createNewTransaction(String created, String userId, String accountId, double amount) {
+    private Transaction createNewTransaction(Date created, String userId, String accountId, double amount) {
         TransactionImpl transaction = new TransactionImpl(
                 UUID.randomUUID().toString(),
-                stringToDate(created),
+                created,
                 usersRepository.getEntityById(userId).get(),
                 accountsRepository.getEntityById(accountId).get(),
                 amount);
         Thread thread = new Thread(() -> addToTransactionListeners(transaction));
+        thread.setDaemon(true);
         thread.start();
+
         try {
             thread.join();
         } catch (InterruptedException e) {
@@ -72,14 +84,18 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public double sum(String created, String userId, String accountId) throws UseException {
-        return sum(stringToDate(created), userId, accountId);
-    }
-
-    private double sum(Date created, String userId, String accountId) throws UseException {
+        Date createdDate = null;
+        synchronized (this) {
+            try {
+                createdDate = new SimpleDateFormat("yyyy-MM-dd HH:mm").parse(created);
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+        }
         Account account = accountsRepository.getEntityById(accountId)
                 .orElseThrow(() -> new UseException(Activity.SUM_TRANSACTION, UseExceptionType.ACCOUNT_NOT_FOUND));
         if (isUserOrOwner(userId, account)) {
-            return sumOfFoundTransactions(created, accountId);
+            return sumOfFoundTransactions(createdDate, accountId);
         } else {
             throw new UseException(Activity.SUM_TRANSACTION, UseExceptionType.NOT_ALLOWED);
         }
@@ -108,20 +124,19 @@ public class TransactionServiceImpl implements TransactionService {
         return false;
     }
 
-    private Date stringToDate(String created) {
-        synchronized (this) {
-            try {
-                return formatter.parse(created);
-            } catch (ParseException e) {
-                e.printStackTrace();
-            }
-            throw new RuntimeException("Could not parse");
-        }
-    }
+//    private Date stringToDate(String created) {
+//        synchronized (this) {
+//            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+//            LocalDateTime localDateTime = LocalDateTime.parse(created, formatter);
+//            return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
+//        }
+//    }
 
 
     @Override
     public void addMonitor(Consumer<Transaction> monitor) {
         transactionListeners.add(monitor);
+
     }
 }
+

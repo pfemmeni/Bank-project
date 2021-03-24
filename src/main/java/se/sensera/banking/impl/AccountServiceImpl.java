@@ -53,14 +53,7 @@ public class AccountServiceImpl implements AccountService {
             throw new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.NOT_OWNER);
         if (!account.isActive())
             throw new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.NOT_ACTIVE);
-        changeAccountName(changeAccountConsumer, account, save);
 
-        if (!save.get())
-            return account;
-        return accountsRepository.save(account);
-    }
-
-    private void changeAccountName(Consumer<ChangeAccount> changeAccountConsumer, Account account, AtomicBoolean save) {
         changeAccountConsumer.accept(new ChangeAccount() {
             @Override
             public void setName(String name) throws UseException {
@@ -75,7 +68,12 @@ public class AccountServiceImpl implements AccountService {
                 }
             }
         });
+
+        if (!save.get())
+            return account;
+        return accountsRepository.save(account);
     }
+
 
     @Override
     public Account addUserToAccount(String userId, String accountId, String userIdToBeAssigned) throws UseException {
@@ -150,7 +148,7 @@ public class AccountServiceImpl implements AccountService {
 
         if (userId == null) {
             accounts = accountsRepository.all()
-                    .filter(account -> account.getName().contains(searchValue))
+                    .filter(account -> account.getName().toLowerCase().contains(searchValue.toLowerCase()))
                     .collect(Collectors.toList())
                     .stream();
         } else {
@@ -161,11 +159,11 @@ public class AccountServiceImpl implements AccountService {
                     .stream();
         }
 
-        if (sortOrder.equals(SortOrder.AccountName)) {
+        if (sortOrder.equals(SortOrder.AccountName) && accounts.count() != 0) {
             Stream<Account> accountsSortedByName = accounts.sorted(SORT_BY_ACCOUNT_NAME).collect(Collectors.toList())
                     .stream();
             return ListUtils.applyPage(accountsSortedByName, pageNumber, pageSize);
-        } else if ((sortOrder.equals(SortOrder.None))) {
+        } else if ((sortOrder.equals(SortOrder.None)) && accounts.count() != 0) {
             return ListUtils.applyPage(accounts, pageNumber, pageSize);
         } else {
             throw new UseException(Activity.FIND_ACCOUNT, UseExceptionType.NOT_FOUND);

@@ -2,6 +2,8 @@ package se.sensera.banking;
 
 import se.sensera.banking.exceptions.UseException;
 
+import java.text.ParseException;
+import java.util.Date;
 import java.util.function.Consumer;
 
 public interface TransactionService {

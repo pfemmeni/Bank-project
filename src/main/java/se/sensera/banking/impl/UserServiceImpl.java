@@ -44,6 +44,7 @@ public class UserServiceImpl implements UserService {
             @Override
             public void setName(String name) {
                 user.setName(name);
+                save.set(false);
             }
 
             @Override
