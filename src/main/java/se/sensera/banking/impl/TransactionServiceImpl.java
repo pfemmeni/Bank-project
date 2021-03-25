@@ -10,10 +10,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -29,12 +26,12 @@ public class TransactionServiceImpl implements TransactionService {
         this.transactionsRepository = transactionsRepository;
     }
 
-    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+    //SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm");
 
     @Override
     public Transaction createTransaction(String created, String userId, String accountId, double amount) throws UseException {
 
-        Account account = accountsRepository.getEntityById(accountId)
+        Account account = getAccountById(accountId)
                 .orElseThrow(() -> new UseException(Activity.CREATE_TRANSACTION, UseExceptionType.ACCOUNT_NOT_FOUND));
 
         if (!isUserOrOwner(userId, account)) {
@@ -52,6 +49,10 @@ public class TransactionServiceImpl implements TransactionService {
 
     }
 
+    private Optional<Account> getAccountById(String accountId) {
+        return accountsRepository.all().filter(account -> accountId.equals(accountId));
+    }
+
     private Date getDate(String created) {
         return stringToDate(created);
     }
@@ -61,7 +62,7 @@ public class TransactionServiceImpl implements TransactionService {
                 UUID.randomUUID().toString(),
                 created,
                 usersRepository.getEntityById(userId).get(),
-                accountsRepository.getEntityById(accountId).get(),
+                getAccountById(accountId).get(),
                 amount);
         Thread thread = new Thread(() -> addToTransactionListeners(transaction));
         thread.setDaemon(true);
@@ -83,7 +84,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     private double sum(Date created, String userId, String accountId) throws UseException {
-        Account account = accountsRepository.getEntityById(accountId)
+        Account account = getAccountById(accountId)
                 .orElseThrow(() -> new UseException(Activity.SUM_TRANSACTION, UseExceptionType.ACCOUNT_NOT_FOUND));
         if (isUserOrOwner(userId, account)) {
             return sumOfFoundTransactions(created, accountId);

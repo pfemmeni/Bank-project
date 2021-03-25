@@ -75,7 +75,7 @@ public class TransactionServiceParallelTest {
     void create_parallel_sum_transaction_success() {
         // Given
         String created = "2020-01-01 10:34";
-        int count = 810;
+        int count = 1000;
         Object monitorSync = new Object();
         transactionService.addMonitor(waitSync1msec(monitorSync));
 
