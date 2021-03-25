@@ -16,7 +16,7 @@ import java.util.stream.Stream;
 
 public class UserServiceImpl implements UserService {
     private UsersRepository usersRepository;
-   // private UsersRepository usersRepository;
+
 
     public UserServiceImpl(UsersRepository usersRepository) {
         this.usersRepository = usersRepository;
@@ -35,7 +35,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User changeUser(String userId, Consumer<ChangeUser> changeUser) throws UseException {
-        User user = usersRepository.getEntityById(userId)
+        User user = getUser(userId)
                 .orElseThrow(() -> new UseException(Activity.UPDATE_USER, UseExceptionType.NOT_FOUND));
 
         AtomicBoolean save = new AtomicBoolean(true);
@@ -44,7 +44,6 @@ public class UserServiceImpl implements UserService {
             @Override
             public void setName(String name) {
                 user.setName(name);
-                save.set(false);
             }
 
             @Override
@@ -67,58 +66,32 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User inactivateUser(String userId) throws UseException {
-        User user = usersRepository.getEntityById(userId)
+        User user = getUser(userId)
                 .orElseThrow(() -> new UseException(Activity.UPDATE_USER, UseExceptionType.NOT_FOUND));
         user.setActive(false);
-
         return usersRepository.save(user);
     }
 
     @Override
     public Optional<User> getUser(String userId) {
-        Optional<User> user = usersRepository.getEntityById(userId);
-        return user;
+        return usersRepository.getEntityById(userId);
     }
 
     @Override
     public Stream<User> find(String searchString, Integer pageNumber, Integer pageSize, SortOrder sortOrder) {
-        SortBySortOrder sortBySortOrder = new SortBySortOrder();
-        Stream<User> unorderedUsers = sortBySortOrder.unorderedUsers(searchString);
+        Stream<User> allFoundUsers = usersRepository.all()
+                .filter(user -> user.getName().toLowerCase().contains(searchString.toLowerCase())
+                        || user.getPersonalIdentificationNumber().contains(searchString))
+                .filter(User::isActive)
+                .collect(Collectors.toList())
+                .stream();
 
-        Stream<User> userStream = sortBySortOrder.usersByOrder(sortOrder, sortBySortOrder, unorderedUsers);
-
-        return ListUtils.applyPage(userStream, pageNumber, pageSize);
+        switch (sortOrder) {
+            case Name -> allFoundUsers = allFoundUsers.sorted(Comparator.comparing(User::getName));
+            case PersonalId -> allFoundUsers = allFoundUsers.sorted(Comparator.comparing(User::getPersonalIdentificationNumber));
+        }
+        return ListUtils.applyPage(allFoundUsers, pageNumber, pageSize);
     }
 
-    class SortBySortOrder {
-        Comparator<User> SORT_BY_NAME = Comparator.comparing(User::getName);
-        Comparator<User> SORT_BY_ID = Comparator.comparing(User::getPersonalIdentificationNumber);
 
-
-        public Stream<User> unorderedUsers(String searchString) {
-            return usersRepository.all()
-                    .filter(user -> checkIfContains(searchString, user))
-                    .collect(Collectors.toList())
-                    .stream();
-        }
-
-        private boolean checkIfContains(String searchString, User user) {
-            if (user.getName().toLowerCase().contains(searchString.toLowerCase()))
-                return true;
-            if (user.getPersonalIdentificationNumber().contains(searchString))
-                return true;
-            return false;
-        }
-
-        private Stream<User> usersByOrder(SortOrder sortOrder, SortBySortOrder sortBySortOrder, Stream<User> unorderedUsers) {
-            if (sortOrder.equals(SortOrder.Name)) {
-                return unorderedUsers.sorted(sortBySortOrder.SORT_BY_NAME);
-            } else if (sortOrder.equals(SortOrder.PersonalId)) {
-                return unorderedUsers.sorted(sortBySortOrder.SORT_BY_ID);
-            } else {
-                return unorderedUsers.filter(User::isActive);
-            }
-        }
-
-    }
 }

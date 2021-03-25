@@ -2,7 +2,6 @@ package se.sensera.banking.impl;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import se.sensera.banking.AccountsRepository;
 import se.sensera.banking.User;
 
 @Data

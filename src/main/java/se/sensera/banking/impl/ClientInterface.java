@@ -135,7 +135,6 @@ public class ClientInterface {
         System.out.println("Enter search text");
         String searchString = scanner.nextLine();
         String foundUsers = userService.find(searchString, null, null, UserService.SortOrder.None)
-                .map(User::getName)
                 .collect(Collectors.toList())
                 .toString();
         System.out.println("User found is " + foundUsers);
