@@ -26,11 +26,8 @@ public class TransactionServiceImpl implements TransactionService {
         this.transactionsRepository = transactionsRepository;
     }
 
-    //SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-
     @Override
     public Transaction createTransaction(String created, String userId, String accountId, double amount) throws UseException {
-
         Account account = getAccountById(accountId)
                 .orElseThrow(() -> new UseException(Activity.CREATE_TRANSACTION, UseExceptionType.ACCOUNT_NOT_FOUND));
 
@@ -40,17 +37,16 @@ public class TransactionServiceImpl implements TransactionService {
         Date date = getDate(created);
 
         synchronized (this) {
-            if (sum(date, userId, accountId) + amount < 0) {
+            if (sum(date, userId, account) + amount < 0) {
                 throw new UseException(Activity.CREATE_TRANSACTION, UseExceptionType.NOT_FUNDED);
             }
         }
-
         return createNewTransaction(date, userId, accountId, amount);
 
     }
 
     private Optional<Account> getAccountById(String accountId) {
-        return accountsRepository.all().filter(account -> accountId.equals(accountId));
+        return accountsRepository.getEntityById(accountId);
     }
 
     private Date getDate(String created) {
@@ -69,7 +65,6 @@ public class TransactionServiceImpl implements TransactionService {
         thread.start();
 
         return transactionsRepository.save(transaction);
-
     }
 
     private void addToTransactionListeners(TransactionImpl transaction) {
@@ -79,30 +74,28 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     public double sum(String created, String userId, String accountId) throws UseException {
         Date createdDate = getDate(created);
-
-        return sum(createdDate, userId, accountId);
-    }
-
-    private double sum(Date created, String userId, String accountId) throws UseException {
         Account account = getAccountById(accountId)
                 .orElseThrow(() -> new UseException(Activity.SUM_TRANSACTION, UseExceptionType.ACCOUNT_NOT_FOUND));
+        return sum(createdDate, userId, account);
+    }
+
+    private double sum(Date created, String userId, Account account) throws UseException {
         if (isUserOrOwner(userId, account)) {
-            return sumOfFoundTransactions(created, accountId);
+            return sumOfFoundTransactions(created, account);
         } else {
             throw new UseException(Activity.SUM_TRANSACTION, UseExceptionType.NOT_ALLOWED);
         }
     }
 
-    private double sumOfFoundTransactions(Date created, String accountId) {
-        Stream<Transaction> foundTransactions = getTransactions(created, accountId);
-
+    private double sumOfFoundTransactions(Date created, Account account) {
+        Stream<Transaction> foundTransactions = getTransactions(created, account);
         return foundTransactions.mapToDouble(Transaction::getAmount).sum();
     }
 
 
-    private Stream<Transaction> getTransactions(Date created, String accountId) {
+    private Stream<Transaction> getTransactions(Date created, Account account) {
         return transactionsRepository.all()
-                .filter(t -> t.getAccount().getId().equals(accountId)
+                .filter(t -> t.getAccount().getId().equals(account.getId())
                         && t.getCreated().before(created));
     }
 
