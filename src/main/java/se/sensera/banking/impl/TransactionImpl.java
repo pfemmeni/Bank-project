@@ -13,11 +13,11 @@ import java.util.Date;
 @Data
 @AllArgsConstructor
 public class TransactionImpl implements Transaction {
-    String id;
-    Date created;
-    User user;
-    Account account;
-    double amount;
+    private final String id;
+    private Date created;
+    private User user;
+    private Account account;
+    private double amount;
 
     @Override
     public Date getCreated() {

@@ -11,11 +11,11 @@ import java.util.stream.Stream;
 @Data
 @AllArgsConstructor
 public class AccountImpl implements Account {
-    String id;
-    User owner;
-    String name;
-    boolean isActive;
-    List<User> users;
+    private final String id;
+    private User owner;
+    private String name;
+    private boolean isActive;
+    private List<User> users;
 
     @Override
     public Stream<User> getUsers() {
