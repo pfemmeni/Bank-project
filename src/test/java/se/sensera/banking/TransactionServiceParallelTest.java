@@ -75,7 +75,7 @@ public class TransactionServiceParallelTest {
     void create_parallel_sum_transaction_success() {
         // Given
         String created = "2020-01-01 10:34";
-        int count = 900;
+        int count = 810;
         Object monitorSync = new Object();
         transactionService.addMonitor(waitSync1msec(monitorSync));
 
@@ -96,7 +96,7 @@ public class TransactionServiceParallelTest {
                                     transactionService.createTransaction(created, user.getId(), account.getId(), amount);
                                     return amount > 0;
                                 } catch (UseException e) {
-                                    e.printStackTrace();
+                                   // e.printStackTrace();
                                     return amount < 0;
                                 }
                             });

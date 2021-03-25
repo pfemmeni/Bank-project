@@ -40,22 +40,20 @@ public class TransactionServiceImpl implements TransactionService {
         if (!isUserOrOwner(userId, account)) {
             throw new UseException(Activity.CREATE_TRANSACTION, UseExceptionType.NOT_ALLOWED);
         }
-        Date date = null;
-//        synchronized (this) {
-        try {
-            date = new SimpleDateFormat("yyyy-MM-dd HH:mm").parse(created);
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-//        }
+        Date date = getDate(created);
 
-
-        if (sum(created, userId, accountId) + amount < 0) {
-            throw new UseException(Activity.CREATE_TRANSACTION, UseExceptionType.NOT_FUNDED);
+        synchronized (this) {
+            if (sum(date, userId, accountId) + amount < 0) {
+                throw new UseException(Activity.CREATE_TRANSACTION, UseExceptionType.NOT_FUNDED);
+            }
         }
 
         return createNewTransaction(date, userId, accountId, amount);
 
+    }
+
+    private Date getDate(String created) {
+        return stringToDate(created);
     }
 
     private Transaction createNewTransaction(Date created, String userId, String accountId, double amount) {
@@ -69,11 +67,6 @@ public class TransactionServiceImpl implements TransactionService {
         thread.setDaemon(true);
         thread.start();
 
-        try {
-            thread.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
         return transactionsRepository.save(transaction);
 
     }
@@ -84,18 +77,16 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public double sum(String created, String userId, String accountId) throws UseException {
-        Date createdDate = null;
-        synchronized (this) {
-            try {
-                createdDate = new SimpleDateFormat("yyyy-MM-dd HH:mm").parse(created);
-            } catch (ParseException e) {
-                e.printStackTrace();
-            }
-        }
+        Date createdDate = getDate(created);
+
+        return sum(createdDate, userId, accountId);
+    }
+
+    private double sum(Date created, String userId, String accountId) throws UseException {
         Account account = accountsRepository.getEntityById(accountId)
                 .orElseThrow(() -> new UseException(Activity.SUM_TRANSACTION, UseExceptionType.ACCOUNT_NOT_FOUND));
         if (isUserOrOwner(userId, account)) {
-            return sumOfFoundTransactions(createdDate, accountId);
+            return sumOfFoundTransactions(created, accountId);
         } else {
             throw new UseException(Activity.SUM_TRANSACTION, UseExceptionType.NOT_ALLOWED);
         }
@@ -124,13 +115,13 @@ public class TransactionServiceImpl implements TransactionService {
         return false;
     }
 
-//    private Date stringToDate(String created) {
-//        synchronized (this) {
-//            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-//            LocalDateTime localDateTime = LocalDateTime.parse(created, formatter);
-//            return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
-//        }
-//    }
+    static DateTimeFormatter formatter2 = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+    private Date stringToDate(String created) {
+        LocalDateTime localDateTime = LocalDateTime.parse(created, formatter2);
+        return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
+
+    }
 
 
     @Override
