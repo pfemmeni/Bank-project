@@ -16,8 +16,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class AccountServiceImpl implements AccountService {
-    private UsersRepository usersRepository;
-    private AccountsRepository accountsRepository;
+    private final UsersRepository usersRepository;
+    private final AccountsRepository accountsRepository;
 
     public AccountServiceImpl(UsersRepository usersRepository, AccountsRepository accountsRepository) {
         this.usersRepository = usersRepository;
@@ -26,9 +26,9 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Account createAccount(String userId, String accountName) throws UseException {
-        userExistAndAccountNameUnique(userId, accountName);
+        accountNameUnique(accountName, Activity.CREATE_ACCOUNT);
         AccountImpl account = new AccountImpl(UUID.randomUUID().toString(),
-                getUserById(userId).get(),
+                getUserById(userId, Activity.CREATE_ACCOUNT, UseExceptionType.USER_NOT_FOUND),
                 accountName,
                 true,
                 new ArrayList<>());
@@ -37,16 +37,24 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Account changeAccount(String userId, String accountId, Consumer<ChangeAccount> changeAccountConsumer) throws UseException {
-        Account account = getAccountById(accountId)
-                .orElseThrow(() -> new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.ACCOUNT_NOT_FOUND));
-
+        Account account = getAccountById(accountId,Activity.UPDATE_ACCOUNT, UseExceptionType.ACCOUNT_NOT_FOUND);
         AtomicBoolean save = new AtomicBoolean(true);
 
+        isOwnerOfAccountAndAccountIsActive(userId, account);
+        setAccountName(changeAccountConsumer, account, save);
+        if (!save.get())
+            return account;
+        return accountsRepository.save(account);
+    }
+
+    private void isOwnerOfAccountAndAccountIsActive(String userId, Account account) throws UseException {
         if (!isOwnerOfAccount(userId, account))
             throw new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.NOT_OWNER);
         if (!account.isActive())
             throw new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.NOT_ACTIVE);
+    }
 
+    private void setAccountName(Consumer<ChangeAccount> changeAccountConsumer, Account account, AtomicBoolean save) {
         changeAccountConsumer.accept(new ChangeAccount() {
             @Override
             public void setName(String name) throws UseException {
@@ -61,19 +69,13 @@ public class AccountServiceImpl implements AccountService {
                 }
             }
         });
-
-        if (!save.get())
-            return account;
-        return accountsRepository.save(account);
     }
 
 
     @Override
     public Account addUserToAccount(String userId, String accountId, String userIdToBeAssigned) throws UseException {
-        Account account = getAccountById(accountId)
-                .orElseThrow(() -> new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.NOT_FOUND));
-        User user = getUserById(userIdToBeAssigned)
-                .orElseThrow(() -> new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.USER_NOT_FOUND));
+        Account account = getAccountById(accountId,Activity.UPDATE_ACCOUNT, UseExceptionType.NOT_FOUND );
+        User user = getUserById(userIdToBeAssigned, Activity.UPDATE_ACCOUNT, UseExceptionType.USER_NOT_FOUND);
 
         if (isOwnerOfAccount(user.getId(), account)) {
             if (!account.isActive())
@@ -92,10 +94,9 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Account removeUserFromAccount(String userId, String accountId, String userIdToBeAssigned) throws UseException {
-        Account account = getAccountById(accountId)
-                .orElseThrow(() -> new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.NOT_FOUND));
-        User user = getUserById(userIdToBeAssigned)
-                .orElseThrow(() -> new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.USER_NOT_FOUND));
+        Account account = getAccountById(accountId,Activity.UPDATE_ACCOUNT, UseExceptionType.NOT_FOUND);
+        User user = getUserById(userIdToBeAssigned, Activity.UPDATE_ACCOUNT, UseExceptionType.USER_NOT_FOUND);
+
 
         if (!isOwnerOfAccount(userId, account))
             throw new UseException(Activity.UPDATE_ACCOUNT, UseExceptionType.NOT_OWNER);
@@ -108,10 +109,9 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Account inactivateAccount(String userId, String accountId) throws UseException {
-        Account account = getAccountById(accountId)
-                .orElseThrow(() -> new UseException(Activity.INACTIVATE_ACCOUNT, UseExceptionType.NOT_FOUND));
-        User user = getUserById(userId)
-                .orElseThrow(() -> new UseException(Activity.INACTIVATE_ACCOUNT, UseExceptionType.USER_NOT_FOUND));
+        Account account = getAccountById(accountId,Activity.INACTIVATE_ACCOUNT, UseExceptionType.NOT_FOUND);
+        User user = getUserById(userId, Activity.INACTIVATE_ACCOUNT, UseExceptionType.USER_NOT_FOUND);
+
 
         if (!isOwnerOfAccount(userId, account))
             throw new UseException(Activity.INACTIVATE_ACCOUNT, UseExceptionType.NOT_OWNER);
@@ -133,8 +133,7 @@ public class AccountServiceImpl implements AccountService {
 
         switch (sortOrder) {
             case AccountName -> {
-                accounts = accounts.sorted(Comparator.comparing(Account::getName));
-                return ListUtils.applyPage(accounts, pageNumber, pageSize);
+                return ListUtils.applyPage(accounts.sorted(Comparator.comparing(Account::getName)), pageNumber, pageSize);
             }
             case None -> {
                 return ListUtils.applyPage(accounts, pageNumber, pageSize);
@@ -143,11 +142,10 @@ public class AccountServiceImpl implements AccountService {
         }
     }
 
-    private void userExistAndAccountNameUnique(String userId, String accountName) throws UseException {
-        getUserById(userId)
-                .orElseThrow(() -> new UseException(Activity.CREATE_ACCOUNT, UseExceptionType.USER_NOT_FOUND));
-        if (checkIfAccountNameEquals(accountName)) {
-            throw new UseException(Activity.CREATE_ACCOUNT, UseExceptionType.ACCOUNT_NAME_NOT_UNIQUE);
+    private void accountNameUnique( String accountName, Activity activity) throws UseException {
+        if (accountsRepository.all()
+                .anyMatch(account -> account.getName().equals(accountName))) {
+            throw new UseException(activity, UseExceptionType.ACCOUNT_NAME_NOT_UNIQUE);
         }
     }
 
@@ -156,12 +154,14 @@ public class AccountServiceImpl implements AccountService {
                 .anyMatch(account -> account.getName().equals(accountName));
     }
 
-    private Optional<User> getUserById(String userId) {
-        return usersRepository.getEntityById(userId);
+    private User getUserById(String userId, Activity activity, UseExceptionType useExceptionType) throws UseException {
+        return usersRepository.getEntityById(userId)
+                .orElseThrow(() -> new UseException(activity, useExceptionType));
     }
 
-    private Optional<Account> getAccountById(String accountId) {
-        return accountsRepository.getEntityById(accountId);
+    private Account getAccountById(String accountId, Activity activity, UseExceptionType useExceptionType) throws UseException {
+        return accountsRepository.getEntityById(accountId)
+                .orElseThrow(() -> new UseException(activity, useExceptionType));
     }
 
     private boolean isOwnerOfAccount(String userId, Account account) {
