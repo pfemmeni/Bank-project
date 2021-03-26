@@ -4,25 +4,21 @@ package se.sensera.banking.impl;
 import se.sensera.banking.*;
 import se.sensera.banking.exceptions.UseException;
 
-import java.sql.SQLOutput;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
+
 import java.util.Scanner;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+
 
 import static se.sensera.banking.impl.Colors.*;
 
 public class ClientInterface {
-    private static Scanner scanner = new Scanner(System.in);
-    private static UsersRepositoryImpl users = new UsersRepositoryImpl();
-    private static UserServiceImpl userService = new UserServiceImpl(users);
-    private static AccountsRepositoryImpl accounts = new AccountsRepositoryImpl();
-    private static AccountServiceImpl accountService = new AccountServiceImpl(users, accounts);
-    private static TransactionsRepositoryImpl transactions = new TransactionsRepositoryImpl();
-    private static TransactionServiceImpl transactionService = new TransactionServiceImpl(users, accounts, transactions);
+    private static final Scanner scanner = new Scanner(System.in);
+    private static final UsersRepositoryImpl users = new UsersRepositoryImpl();
+    private static final UserServiceImpl userService = new UserServiceImpl(users);
+    private static final AccountsRepositoryImpl accounts = new AccountsRepositoryImpl();
+    private static final AccountServiceImpl accountService = new AccountServiceImpl(users, accounts);
+    private static final TransactionsRepositoryImpl transactions = new TransactionsRepositoryImpl();
+    private static final TransactionServiceImpl transactionService = new TransactionServiceImpl(users, accounts, transactions);
 
 
     public static void main(String[] args) throws UseException {
@@ -37,42 +33,17 @@ public class ClientInterface {
             choice = scanner.nextInt();
             scanner.nextLine();
             switch (choice) {
-                case 0:
-                    // printInstructions();
-                    break;
-                case 1:
-                    createNewUser();
-                    break;
-                case 2:
-                    updateUser();
-                    break;
-                case 3:
-                    inactivateUser();
-                    break;
-                case 4:
-                    findUser();
-                    break;
-                case 5:
-                    createAccount();
-                    break;
-                case 6:
-                    updateExistingAccount();
-                    break;
-                case 7:
-                    inactivateAccount();
-                    break;
-                case 8:
-                    findAccount();
-                    break;
-                case 9:
-                    checkFunds();
-                    break;
-                case 10:
-                    createTransaction();
-                    break;
-                default:
-                    quit = true;
-                    break;
+                case 1 -> createNewUser();
+                case 2 -> updateUser();
+                case 3 -> inactivateUser();
+                case 4 -> findUser();
+                case 5 -> createAccount();
+                case 6 -> updateExistingAccount();
+                case 7 -> inactivateAccount();
+                case 8 -> findAccount();
+                case 9 -> checkFunds();
+                case 10 -> createTransaction();
+                default -> quit = true;
             }
         }
     }
@@ -190,11 +161,10 @@ public class ClientInterface {
         System.out.println(ANSI_PURPLE + "Search for an account");
         System.out.println("Enter your search");
         String searchValue = scanner.nextLine();
-       String searchResult = accountService.findAccounts(searchValue, null, null, null, AccountService.SortOrder.None)
-               .map(Account::getName)
-               .collect(Collectors.toList())
-               .toString();
-
+        String searchResult = accountService.findAccounts(searchValue, null, null, null, AccountService.SortOrder.None)
+                .map(Account::getName)
+                .collect(Collectors.toList())
+                .toString();
 
 
         System.out.println("Account(s) found was : " + searchResult);
@@ -207,10 +177,10 @@ public class ClientInterface {
         System.out.println("Enter your account id");
         String accountId = scanner.nextLine();
 
-        Date date = Calendar.getInstance().getTime();
-        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        String created = dateFormat.format(date);
-
+//        Date date = Calendar.getInstance().getTime();
+//        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//        String created = dateFormat.format(date);
+        String created = "2021-01-01 10:34";
         double funds = transactionService.sum(created, userId, accountId);
         System.out.println("Your account has: " + funds + " kr");
     }

@@ -8,7 +8,6 @@ import se.sensera.banking.utils.ListUtils;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -37,7 +36,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Account changeAccount(String userId, String accountId, Consumer<ChangeAccount> changeAccountConsumer) throws UseException {
-        Account account = getAccountById(accountId,Activity.UPDATE_ACCOUNT, UseExceptionType.ACCOUNT_NOT_FOUND);
+        Account account = getAccountById(accountId, Activity.UPDATE_ACCOUNT, UseExceptionType.ACCOUNT_NOT_FOUND);
         AtomicBoolean save = new AtomicBoolean(true);
 
         isOwnerOfAccountAndAccountIsActive(userId, account);
@@ -74,7 +73,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Account addUserToAccount(String userId, String accountId, String userIdToBeAssigned) throws UseException {
-        Account account = getAccountById(accountId,Activity.UPDATE_ACCOUNT, UseExceptionType.NOT_FOUND );
+        Account account = getAccountById(accountId, Activity.UPDATE_ACCOUNT, UseExceptionType.NOT_FOUND);
         User user = getUserById(userIdToBeAssigned, Activity.UPDATE_ACCOUNT, UseExceptionType.USER_NOT_FOUND);
 
         if (isOwnerOfAccount(user.getId(), account)) {
@@ -94,7 +93,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Account removeUserFromAccount(String userId, String accountId, String userIdToBeAssigned) throws UseException {
-        Account account = getAccountById(accountId,Activity.UPDATE_ACCOUNT, UseExceptionType.NOT_FOUND);
+        Account account = getAccountById(accountId, Activity.UPDATE_ACCOUNT, UseExceptionType.NOT_FOUND);
         User user = getUserById(userIdToBeAssigned, Activity.UPDATE_ACCOUNT, UseExceptionType.USER_NOT_FOUND);
 
 
@@ -109,7 +108,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Account inactivateAccount(String userId, String accountId) throws UseException {
-        Account account = getAccountById(accountId,Activity.INACTIVATE_ACCOUNT, UseExceptionType.NOT_FOUND);
+        Account account = getAccountById(accountId, Activity.INACTIVATE_ACCOUNT, UseExceptionType.NOT_FOUND);
         User user = getUserById(userId, Activity.INACTIVATE_ACCOUNT, UseExceptionType.USER_NOT_FOUND);
 
 
@@ -142,7 +141,7 @@ public class AccountServiceImpl implements AccountService {
         }
     }
 
-    private void accountNameUnique( String accountName, Activity activity) throws UseException {
+    private void accountNameUnique(String accountName, Activity activity) throws UseException {
         if (accountsRepository.all()
                 .anyMatch(account -> account.getName().equals(accountName))) {
             throw new UseException(activity, UseExceptionType.ACCOUNT_NAME_NOT_UNIQUE);
