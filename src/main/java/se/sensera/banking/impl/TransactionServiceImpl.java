@@ -10,7 +10,6 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class TransactionServiceImpl implements TransactionService {
@@ -39,18 +38,18 @@ public class TransactionServiceImpl implements TransactionService {
         double sum = sum(date, userId, account);
 
         synchronized (this) {
-            if (sum + amount < 0)
+            if ((sum + amount) < 0)
                 throw new UseException(Activity.CREATE_TRANSACTION, UseExceptionType.NOT_FUNDED);
         }
-        return createNewTransaction(date, userId, accountId, amount);
+        return createNewTransaction(date, userId, account, amount);
     }
 
 
-    private Transaction createNewTransaction(Date created, String userId, String accountId, double amount) {
+    private Transaction createNewTransaction(Date created, String userId, Account account, double amount) {
         TransactionImpl transaction = new TransactionImpl(UUID.randomUUID().toString(),
                 created,
                 usersRepository.getEntityById(userId).get(),
-                getAccountById(accountId).get(),
+                account,
                 amount);
         Thread thread = new Thread(() -> addToTransactionListeners(transaction));
         thread.setDaemon(true);
@@ -77,22 +76,18 @@ public class TransactionServiceImpl implements TransactionService {
         throw new UseException(Activity.SUM_TRANSACTION, UseExceptionType.NOT_ALLOWED);
     }
 
-    private double sumOfFoundTransactions(Date created, Account account) {
-        return getTransactions(created, account).mapToDouble(Transaction::getAmount).sum();
-    }
-
-
     private Stream<Transaction> getTransactions(Date created, Account account) {
         return transactionsRepository.all()
                 .filter(t -> t.getAccount().getId().equals(account.getId())
                         && t.getCreated().before(created));
     }
 
+    private double sumOfFoundTransactions(Date created, Account account) {
+        return getTransactions(created, account).mapToDouble(Transaction::getAmount).sum();
+    }
+
     private Optional<Account> getAccountById(String accountId) {
-        return accountsRepository.all().filter(account -> accountId.equals(accountId))
-                .collect(Collectors.toList())
-                .stream()
-                .findAny();
+        return accountsRepository.getEntityById(accountId);
     }
 
 
