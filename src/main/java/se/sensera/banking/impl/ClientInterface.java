@@ -110,7 +110,7 @@ public class ClientInterface {
                 .toString();
         System.out.println("User found is " + foundUsers);
     }
-
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
     private static void createAccount() throws UseException {
         System.out.println(ANSI_PURPLE + "To create an account");
         System.out.println("Enter your userId: ");
@@ -127,6 +127,17 @@ public class ClientInterface {
                 .getId();
         System.out.println("Account created, your account id is: " + accountId);
 
+    }
+    private static void addUserToAccount() throws UseException {
+        System.out.println(ANSI_PURPLE + "To add User to Account");
+        System.out.println("Enter your User id: ");
+        String userId = scanner.nextLine();
+        System.out.println("Enter your Account id");
+        String accountId = scanner.nextLine();
+        System.out.println("Enter the User id, of the User you want to assign to your account");
+        String userIdToBeAssigned = scanner.nextLine();
+
+        accountService.addUserToAccount(userId, accountId,userIdToBeAssigned);
     }
 
     private static void updateExistingAccount() throws UseException {
@@ -163,10 +174,9 @@ public class ClientInterface {
         String searchValue = scanner.nextLine();
         String searchResult = accountService.findAccounts(searchValue, null, null, null, AccountService.SortOrder.None)
                 .map(Account::getName)
+                .filter(account -> account.contains(searchValue))
                 .collect(Collectors.toList())
                 .toString();
-
-
         System.out.println("Account(s) found was : " + searchResult);
     }
 
@@ -177,9 +187,6 @@ public class ClientInterface {
         System.out.println("Enter your account id");
         String accountId = scanner.nextLine();
 
-//        Date date = Calendar.getInstance().getTime();
-//        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-//        String created = dateFormat.format(date);
         String created = "2021-01-01 10:34";
         double funds = transactionService.sum(created, userId, accountId);
         System.out.println("Your account has: " + funds + " kr");
